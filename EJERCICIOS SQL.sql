@@ -11,7 +11,8 @@ where "actor_id" between 30 and 40;
 --Enunciado 4. Obtén las películas cuyo idioma coincide con el idioma original.
 select "title" , "original_language_id","language_id"
 from "film" 
-where "language_id" ="original_language_id";
+where language_id =original_language_id
+or "original_language_id" is Null;
 
 --Enunciado 5. Ordena las películas por duración de forma ascendente
 select "title" , "length" as total_duracion
@@ -21,10 +22,10 @@ order by "length" asc;
 --Enunciado 6. Encuentra el nombre y apellido de los actores que tengan ‘Allen’ en su apellido.
 select "first_name" , "last_name"
 from "actor" 
-where "last_name" = 'ALLEN';
+where "last_name" like '%ALLEN%';
 
 --Enunciado 7. Encuentra la cantidad total de películas en cada clasificación de la tabla “film” y muestra la clasificación junto con el recuento.
-select "rating" ,count("film_id") as tota_peliculas
+select "rating" ,count("film_id") as total_peliculas
 from "film"
 group by "rating";
 
@@ -46,7 +47,7 @@ from "film";
 -- Enunciado 11. Encuentra lo que costó el antepenúltimo alquiler ordenado por día.
 select "rental_id" , "amount","payment_date"
 from "payment"
-order by "rental_id" desc , "payment_date"
+order by "payment_date" desc
 limit 1 offset 2; 
 
 --Enunciado 12. Encuentra el título de las películas en la tabla “film” que no sean ni ‘NC17’ ni ‘G’ en cuanto a su clasificación.
@@ -85,9 +86,9 @@ on f."film_id"= f2."film_id"
 where f2."title" = 'EGG IGBY';
 
 -- Enunciado 18. Selecciona todos los nombres de las películas únicos
-select "title", count(distinct("title")) as peliculas_unicas 
-from "film"
-group by "title";
+select distinct("title") as peliculas_unicas 
+from "film";
+
 
 -- Enunciado 19. Encuentra el título de las películas que son comedias y tienen una duración mayor a 180 minutos en la tabla “film”
 select f."title" , c."name" ,f."length"
@@ -96,7 +97,7 @@ inner join "film_category" as f2
 on f."film_id"= f2."film_id"
 inner join "category" as c
 on f2."category_id"=c."category_id"
-where c."name" = 'Comedy'and f."length" >180;
+where c."name" = 'Comedy' and f."length" >180;
 
 
 --Enunciado 20.Encuentra las categorías de películas que tienen un promedio de duración superior a 110 minutos y muestra el nombre de la categoría junto con el promedio de duración.
@@ -126,11 +127,9 @@ group by "rental_date"
 order by numero_alquiler DESC;
 
 --Enunciado 24. Encuentra las películas con una duración superior al promedio
-select "title",ROUND(AVG("length"),2) as duración_promedio 
+select "title"
 from "film"
-where "length" > (select (ROUND(AVG("length"),2))from "film")
-group by "title"
-order by duración_promedio ASC ;
+where "length" > (select (AVG("length"))from "film");
 
 --Enunciado 25. Averigua el número de alquileres registrados por mes.
 SELECT 
@@ -253,8 +252,8 @@ on r."customer_id" = c."customer_id";
 
 --Enunciado 43. Muestra todos los clientes y sus alquileres si existen, incluyendo aquellos que no tienen alquileres.
 select Concat(c."first_name",' ',"last_name") as nombre_cliente ,count  (r."rental_id") as total_alquileres
-from "rental" as r
-left join "customer" as c
+from "customer" as c
+left join "rental" as r
 on r."customer_id" = c."customer_id"
 group by Concat(c."first_name",' ',"last_name")
 order by total_alquileres asc;
@@ -367,13 +366,13 @@ order by f."title";
 --Enunciado 54.Encuentra los nombres de los actores que han actuado en al menos una película que pertenece a la categoría ‘Sci-Fi’. Ordena los resultados alfabéticamente por apellido.
 select a."first_name",a."last_name", c."name"
 from "actor"as a
-full join "film_actor" as f 
+inner join "film_actor" as f 
 on a."actor_id" =f."actor_id"
-full join "film" as f2
+inner join"film" as f2
 on f."film_id" =f2."film_id"
-full join "film_category" as f3
+inner join "film_category" as f3
 on f2."film_id"=f3."film_id"
-full join "category" as c
+inner join "category" as c
 on f3."category_id"=c."category_id"
 where c."name"='Sci-Fi'
 group by a."first_name",a."last_name", c."name"
@@ -406,18 +405,19 @@ ORDER BY a."last_name" ASC, f."title" ASC;
 
 
 --Enunciado 56. Encuentra el nombre y apellido de los actores que no han actuado en ninguna película de la categoría ‘Music’.
-select Concat(a."first_name",' ',"last_name") as nombre_actor , f2."title" , c."name"
-from "actor"as a
-full join "film_actor" as f 
-on a."actor_id" =f."actor_id"
-full join "film" as f2
-on f."film_id" =f2."film_id"
-full join "film_category" as f3
-on f2."film_id"=f3."film_id"
-full join "category" as c
-on f3."category_id"=c."category_id"
-where c."name" <>'Music'
-group by f2."title" ,c."name",Concat(a."first_name",' ',"last_name");
+select a."first_name", a.last_name
+from "actor" as a
+where not exists (
+    select 1
+    from "film_actor" as fa
+    inner join "film" f 
+    on fa."film_id" = f."film_id"
+    inner join "film_category" fc 
+    on f."film_id" = fc."film_id"
+    inner join "category" as c 
+    on fc."category_id" = c."category_id"
+    where fa."actor_id" = a."actor_id"
+      and c."name" = 'Music'); 
 
 
 --Enunciado 57.Encuentra el título de todas las películas que fueron alquiladas por más de 8 días.
